@@ -1,6 +1,6 @@
-# Deep Learning from Scratch: Neural Network Implementations
+# Movie Genre Classification MLP
 
-This project contains a native implementation of deep learning algorithms and examples of shallow networks being built and analyzed for various purposes. The goal is to provide a hands-on experience with the fundamentals of neural network layers and operations without the use of high-level libraries such as TensorFlow or PyTorch.
+This project contains a native implementation of an MLP system that combines numerical, categorical and NLP features from a movie's descriptors to predict genre.
 
 ## Structure
 - `/layers`: Contains the implementation of input, fully connected, activation, and objective layers.
