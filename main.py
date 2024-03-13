@@ -9,6 +9,10 @@ from sklearn.model_selection import train_test_split
 # Retrieve the x and y data
 x, y = clean_data('data/raw_data.json')
 
+# I need to zscore x
+x = (x - np.mean(x)) / np.std(x)
+
+
 # Split the data into training and testing sets
 x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=0)
 
@@ -30,7 +34,7 @@ prevtraince = 0
 final_sm = []
 
 # Forwards backwards loop
-for epoch in range(10000):
+for epoch in range(3000):
 	if epoch%100==0:
 		print(epoch)
 
