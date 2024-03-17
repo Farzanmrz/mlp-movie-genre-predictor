@@ -2,7 +2,7 @@
 import pandas as pd
 import numpy as np
 import json
-from sklearn.preprocessing import MultiLabelBinarizer
+from sklearn.preprocessing import MultiLabelBinarizer, StandardScaler
 
 def clean_data(json_path):
 
@@ -27,17 +27,29 @@ def clean_data(json_path):
     # Drop release_date
     df = df.drop(columns=['release_date'])
 
-    # Define list of features and target
-    categorical_features = [ 'director', 'producers', 'starring', 'country', 'language', 'release_month','release_day' ]
-    numerical_features = [ 'budget', 'box_office', 'vote_average', 'vote_count', 'runtime', 'release_year' ]
-    target = 'genres'
-
-    # Separate the subsets and targets
-    df_categorical = df[ categorical_features ]
-    df_numerical = df[ numerical_features ]
-
     # One-hot encode the targets
     mlb = MultiLabelBinarizer()
-    y = pd.DataFrame(mlb.fit_transform(df[target]), columns=mlb.classes_)
+    y = pd.DataFrame(mlb.fit_transform(df['genres']), columns=mlb.classes_)
 
-    return df_numerical, y
+    return df, y
+
+    # # Define list of features and target
+    # categorical_features = [ 'director', 'producers', 'starring', 'country', 'language', 'release_month','release_day' ]
+    # numerical_features = [ 'budget', 'box_office', 'vote_average', 'vote_count', 'runtime', 'release_year' ]
+    # nlp_features = ['name','overview', 'plot' ]
+    # target = 'genres'
+    #
+    # # Separate the subsets and targets
+    # df_categorical = df[ categorical_features ]
+    # df_numerical = df[ numerical_features ]
+    # df_nlp = df[ nlp_features ]
+    #
+    # # Create zscored numerical features
+    # #scaler = StandardScaler()
+    # #df_numerical = pd.DataFrame(scaler.fit_transform(df_numerical), columns = numerical_features)
+    #
+    # # One-hot encode the targets
+    # mlb = MultiLabelBinarizer()
+    # y = pd.DataFrame(mlb.fit_transform(df[target]), columns=mlb.classes_)
+    #
+    # return df_numerical,df_nlp, y
