@@ -2,7 +2,14 @@
 import pandas as pd
 import numpy as np
 import json
-from sklearn.preprocessing import MultiLabelBinarizer, StandardScaler
+from sklearn.preprocessing import MultiLabelBinarizer
+from sklearn.decomposition import TruncatedSVD
+import pandas as pd
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+from nltk.stem import WordNetLemmatizer
+from sklearn.feature_extraction.text import TfidfVectorizer
+import string
 
 def clean_data(json_path):
 
@@ -27,29 +34,70 @@ def clean_data(json_path):
     # Drop release_date
     df = df.drop(columns=['release_date'])
 
+    # Separate the nlp df and the numerical df
+    df_numerical = df[ [ 'budget', 'box_office', 'vote_average', 'vote_count', 'runtime', 'release_year' ] ]
+    df_nlp = preprocess_nlp_df(df[ [ 'name', 'overview', 'plot' ] ])
+
+    # Reset indexes before concatenation
+    df_numerical = df_numerical.reset_index(drop=True)
+    df_nlp = df_nlp.reset_index(drop=True)
+
+    # Concatenate different category dfs
+    final_df = pd.concat([ df_numerical, df_nlp ], axis=1)
+
     # One-hot encode the targets
     mlb = MultiLabelBinarizer()
     y = pd.DataFrame(mlb.fit_transform(df['genres']), columns=mlb.classes_)
 
-    return df, y
+    return final_df, y
 
-    # # Define list of features and target
-    # categorical_features = [ 'director', 'producers', 'starring', 'country', 'language', 'release_month','release_day' ]
-    # numerical_features = [ 'budget', 'box_office', 'vote_average', 'vote_count', 'runtime', 'release_year' ]
-    # nlp_features = ['name','overview', 'plot' ]
-    # target = 'genres'
-    #
-    # # Separate the subsets and targets
-    # df_categorical = df[ categorical_features ]
-    # df_numerical = df[ numerical_features ]
-    # df_nlp = df[ nlp_features ]
-    #
-    # # Create zscored numerical features
-    # #scaler = StandardScaler()
-    # #df_numerical = pd.DataFrame(scaler.fit_transform(df_numerical), columns = numerical_features)
-    #
-    # # One-hot encode the targets
-    # mlb = MultiLabelBinarizer()
-    # y = pd.DataFrame(mlb.fit_transform(df[target]), columns=mlb.classes_)
-    #
-    # return df_numerical,df_nlp, y
+
+
+
+def preprocess_nlp_df( nlp_df ):
+    """
+	Function to preprocess each text entry in the DataFrame.
+	"""
+
+    # Create set of stopwords and the lemmatizer object
+    stop_words = set(stopwords.words('english'))
+    lemmatizer = WordNetLemmatizer()
+
+    def text_preprocessing( text ):
+        """
+		Function to preprocess a single text entry.
+		"""
+        # Tokenize the text, remove punctuation and lowercase
+        tokens = [ word.lower() for word in word_tokenize(text) if word.lower() not in string.punctuation ]
+
+        # Remove stopwords
+        tokens = [ word for word in tokens if word not in stop_words ]
+
+        # Lemmatize the tokens and return the processed string
+        return ' '.join([ lemmatizer.lemmatize(token) for token in tokens ])
+
+    # Initialize TF-IDF Vectorizer
+    tfidf_vectorizer = TfidfVectorizer()
+
+    # List to store TF-IDF matrices for each column
+    tfidf_matrices = [ ]
+
+    # Iterate over each column in the DataFrame, preprocess and vectorize the text
+    for column in nlp_df.columns:
+        preprocessed_texts = nlp_df[ column ].apply(text_preprocessing)
+        tfidf_matrix = tfidf_vectorizer.fit_transform(preprocessed_texts)
+        tfidf_matrices.append(tfidf_matrix)
+
+    # Combine the TF-IDF matrices. Note: This requires the matrices to have the same number of rows.
+    combined_tfidf_matrix = np.hstack([ tfidf_matrix.toarray() for tfidf_matrix in tfidf_matrices ])
+
+    # Reduce using SVD down to n-features
+    n_components = 300
+    svd = TruncatedSVD(n_components = n_components)
+    reduced_tfidf_matrix = svd.fit_transform(combined_tfidf_matrix)
+
+    # Convert back to a DataFrame
+    column_names = [ 'tfidf_svd_' + str(i) for i in range(n_components) ]
+    reduced_df = pd.DataFrame(reduced_tfidf_matrix, columns = column_names)
+
+    return reduced_df

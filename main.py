@@ -25,50 +25,100 @@ x, y = clean_data('data/raw_data.json')
 # Split the data into training and testing sets
 x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=0)
 
-print(x_train.shape)
-print(x_test.shape)
-print(y_train.shape)
-print(y_test.shape)
-
 # Define the layers being used
-L1 = InputLayer.InputLayer()
-
-# Forward pass
-# Input Layer
-h = L1.forward(x_train)
-print(h.shape)
-
-# Define other layers
-L2 = FullyConnectedLayer.FullyConnectedLayer(h.shape[1],y_train.shape[1])
+L1 = InputLayer.InputLayer(x_train)
+L2 = FullyConnectedLayer.FullyConnectedLayer(x_train.shape[1],x_train.shape[1])
 L3 = ReLULayer.ReLULayer()
-layers = [L1,L2,L3]
-
-# Fully Connected Layer
-fc_forward = layers[1].forward(h)
-print(fc_forward.shape)
-
-# ReLU Layer
-relu_forward = layers[ 2 ].forward(fc_forward)
-print(relu_forward.shape)
-
-# Hidden Layer 2
-L4 = FullyConnectedLayer.FullyConnectedLayer(relu_forward.shape[1],y_train.shape[1])
+L4 = FullyConnectedLayer.FullyConnectedLayer(x_train.shape[1],y_train.shape[1])
 L5 = SoftmaxLayer.SoftmaxLayer()
 L6 = CrossEntropy.CrossEntropy()
-layers2 = [L4,L5, L6]
+layers = [L1, L2, L3, L4, L5, L6]
 
-# Fully Connected Layer
-fc2_forward = layers2[ 0 ].forward(relu_forward)
-print(fc2_forward.shape)
+# Forward Propogation function
+def forward_propagation( layers, x, y ):
+	"""
+	Performs forward propagation through the network layers and returns the output of the second last layer
+	and the loss value from the last layer.
 
-# Softmax Layer
-sm_forward = layers2[ 1 ].forward(fc2_forward)
-print(sm_forward.shape)
+	:param layers: List of network layers, including the loss layer as the last layer.
+	:param x: Input data for the network.
+	:param y: Target labels for computing the loss.
+	:return: Output of the second last layer and loss value from the last layer.
+	"""
+	h = x
+	# Iterate through all layers except the last one to perform forward steps.
+	for layer in layers[ :-1 ]:
+		h = layer.forward(h)
 
-# Cross Entropy
-ce_forward = layers2[ 2 ].eval(y_train, sm_forward)
-print(ce_forward)
+	# The current_input now holds the output of the second-last layer.
+	second_last_output = h
 
+	# Get loss value from the last layer.
+	loss = layers[ -1 ].eval(y, second_last_output)
+
+	return second_last_output, loss
+
+# Backward Propogation function
+def backward_propagation( layers, y_hat, y, t,  eta = 0.001 ):
+	"""
+	Performs backward propagation given the output from forward propagation.
+
+	:param layers: List of network layers, including the loss layer as the last layer.
+	:param y_hat: The output from the forward pass (hidden layer 2 output after softmax).
+	:param y: Target labels for computing the gradients.
+	:param eta: Learning rate for weight updates.
+	"""
+	# Compute the gradients for hidden layer 2
+	ce_back = layers[ 5 ].gradient(y, y_hat)
+	sm_back = layers[ 4 ].backward(ce_back)
+	fc2_back = layers[ 3 ].backward(sm_back)
+
+	# Weight update FC2 layer
+	layers[ 3 ].updateWeights(sm_back, t, eta)
+
+	# Compute the gradients for hidden layer 1
+	relu_back = layers[ 2 ].backward(fc2_back)
+
+	# Weight update FC1 layer
+	layers[ 1 ].updateWeights(relu_back, t, eta)
+
+
+# Function to run the MLP network
+def run_mlp( layers, x, y, epochs, eta = 0.001 ):
+	"""
+	Runs the MLP neural network for a specified number of epochs.
+
+	:param layers: List of network layers, including the loss layer as the last layer.
+	:param x: Input data for the network.
+	:param y: Target labels for the network.
+	:param epochs: Number of epochs to train the network.
+	:param eta: Learning rate for weight updates.
+	:return: The final output from the last forward_propagation and a list of losses every 10 epochs.
+	"""
+	losses = [ ]  # To store the loss every 10 epochs
+
+	for epoch in range(epochs):
+		# Forward propagation
+		output, loss = forward_propagation(layers, x, y)
+
+		# Backward propagation
+		backward_propagation(layers, output, y, epoch, eta)
+
+		# Print and save the loss every 10 epochs
+		if epoch % 100 == 0:
+			print(f"Epoch {epoch}, Cross Entropy Loss: {loss}")
+			losses.append(loss)
+
+	return output, losses
+
+
+# Example of usage
+epochs = 1000  # Set the number of epochs
+learning_rate = 0.001  # Set the learning rate
+final_output, epoch_losses = run_mlp(layers, x_train, y_train, epochs, learning_rate)
+
+# Print final output and loss for verification
+print(f"Final Cross Entropy Loss: {epoch_losses[-1]}")
 
 
 
