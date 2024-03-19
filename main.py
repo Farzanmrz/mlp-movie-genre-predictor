@@ -26,13 +26,12 @@ x, y = clean_data('data/raw_data.json')
 x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=0)
 
 # Define the layers being used
-L1 = InputLayer.InputLayer(x_train)
-L2 = FullyConnectedLayer.FullyConnectedLayer(x_train.shape[1],x_train.shape[1])
-L3 = ReLULayer.ReLULayer()
-L4 = FullyConnectedLayer.FullyConnectedLayer(x_train.shape[1],y_train.shape[1])
-L5 = SoftmaxLayer.SoftmaxLayer()
-L6 = CrossEntropy.CrossEntropy()
-layers = [L1, L2, L3, L4, L5, L6]
+L1 = FullyConnectedLayer.FullyConnectedLayer(x_train.shape[1],x_train.shape[1])
+L2 = ReLULayer.ReLULayer()
+L3 = FullyConnectedLayer.FullyConnectedLayer(x_train.shape[1],y_train.shape[1])
+L4 = SoftmaxLayer.SoftmaxLayer()
+L5 = CrossEntropy.CrossEntropy()
+layers = [L1, L2, L3, L4, L5]
 
 # Forward Propogation function
 def forward_propagation( layers, x, y ):
@@ -69,19 +68,18 @@ def backward_propagation( layers, y_hat, y, t,  eta = 0.001 ):
 	:param eta: Learning rate for weight updates.
 	"""
 	# Compute the gradients for hidden layer 2
-	ce_back = layers[ 5 ].gradient(y, y_hat)
-	sm_back = layers[ 4 ].backward(ce_back)
-	fc2_back = layers[ 3 ].backward(sm_back)
+	ce_back = layers[ 4 ].gradient(y, y_hat)
+	sm_back = layers[ 3 ].backward(ce_back)
+	fc2_back = layers[2 ].backward(sm_back)
 
 	# Weight update FC2 layer
-	layers[ 3 ].updateWeights(sm_back, t, eta)
+	layers[ 2 ].updateWeights(sm_back, t, eta)
 
 	# Compute the gradients for hidden layer 1
-	relu_back = layers[ 2 ].backward(fc2_back)
+	relu_back = layers[ 1 ].backward(fc2_back)
 
 	# Weight update FC1 layer
-	layers[ 1 ].updateWeights(relu_back, t, eta)
-
+	layers[ 0 ].updateWeights(relu_back, t, eta)
 
 # Function to run the MLP network
 def run_mlp( layers, x, y, epochs, eta = 0.001 ):
@@ -109,18 +107,41 @@ def run_mlp( layers, x, y, epochs, eta = 0.001 ):
 			print(f"Epoch {epoch}, Cross Entropy Loss: {loss}")
 			losses.append(loss)
 
+	# Convert final output probabilities to binary based on threshold
+	output = (output >= 0.5).astype(int)
+
 	return output, losses
 
+# Function to calculate the accuracy of the network
+def calculate_accuracy( y_true, y_pred, threshold = 0.5 ):
+	"""
+	Calculate the multi-label accuracy using a threshold to determine label predictions.
+
+	:param y_true: Numpy array of true labels (binary encoded).
+	:param y_pred: Numpy array of predicted probabilities.
+	:param threshold: Threshold for converting probabilities to binary predictions.
+	:return: Accuracy score.
+	"""
+	# Convert probabilities to binary predictions
+
+	# Calculate subset accuracy
+	correct_predictions = np.all(y_true == y_pred, axis = 1)
+	accuracy = np.mean(correct_predictions)
+	return accuracy
 
 # Example of usage
-epochs = 1000  # Set the number of epochs
+epochs = 500  # Set the number of epochs
 learning_rate = 0.001  # Set the learning rate
 final_output, epoch_losses = run_mlp(layers, x_train, y_train, epochs, learning_rate)
 
 # Print final output and loss for verification
 print(f"Final Cross Entropy Loss: {epoch_losses[-1]}")
+print(f"Final Probabilities")
+print(final_output[:1])
+print(y_train[:1])
 
-
+accuracy = calculate_accuracy(y_train, final_output, threshold=0.1)
+print(f"Multi-label accuracy: {accuracy}")
 
 # # Define variables to store J for train and test
 # jtrain = []

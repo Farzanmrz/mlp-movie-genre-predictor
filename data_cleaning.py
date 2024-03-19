@@ -30,13 +30,15 @@ def clean_data(json_path):
     df['release_year'] = df['release_date'].dt.year
     df['release_month'] = df['release_date'].dt.month
     df['release_day'] = df['release_date'].dt.day
-
-    # Drop release_date
     df = df.drop(columns=['release_date'])
 
     # Separate the nlp df and the numerical df
     df_numerical = df[ [ 'budget', 'box_office', 'vote_average', 'vote_count', 'runtime', 'release_year' ] ]
+    df_categorical = df[['director', 'producers', 'starring', 'country', 'language', 'release_month', 'release_day']]
     df_nlp = preprocess_nlp_df(df[ [ 'name', 'overview', 'plot' ] ])
+
+    # Zscore the numerical df
+    df_numerical = (df_numerical - df_numerical.mean()) / df_numerical.std()
 
     # Reset indexes before concatenation
     df_numerical = df_numerical.reset_index(drop=True)
@@ -92,7 +94,7 @@ def preprocess_nlp_df( nlp_df ):
     combined_tfidf_matrix = np.hstack([ tfidf_matrix.toarray() for tfidf_matrix in tfidf_matrices ])
 
     # Reduce using SVD down to n-features
-    n_components = 300
+    n_components = 1790
     svd = TruncatedSVD(n_components = n_components)
     reduced_tfidf_matrix = svd.fit_transform(combined_tfidf_matrix)
 
