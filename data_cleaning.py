@@ -29,14 +29,11 @@ def clean_data(json_path):
 
     # Split release_date into year, month, day
     df['release_year'] = df['release_date'].dt.year
-    df['release_month'] = df['release_date'].dt.month
-    df['release_day'] = df['release_date'].dt.day
     df = df.drop(columns=['release_date'])
 
     # Separate the nlp df and the numerical df
     df_numerical = df[ [ 'budget', 'box_office', 'vote_average', 'vote_count', 'runtime', 'release_year' ] ]
-    df_categorical = df[['director', 'producers', 'starring', 'country', 'language', 'release_month', 'release_day']]
-    df_nlp = preprocess_nlp_df(df[ [ 'name', 'overview', 'plot' ] ])
+    df_nlp = preprocess_nlp_df(df[ [ 'name', 'overview', 'plot','language'] ])
 
     # Zscore the numerical df
     df_numerical = (df_numerical - df_numerical.mean()) / df_numerical.std()
@@ -53,8 +50,6 @@ def clean_data(json_path):
     y = pd.DataFrame(mlb.fit_transform(df['genres']), columns=mlb.classes_)
 
     return final_df, y
-
-
 
 
 def preprocess_nlp_df( nlp_df ):
@@ -95,7 +90,7 @@ def preprocess_nlp_df( nlp_df ):
     combined_tfidf_matrix = np.hstack([ tfidf_matrix.toarray() for tfidf_matrix in tfidf_matrices ])
 
     # Reduce using SVD down to n-features
-    n_components = 300
+    n_components = 1000
     svd = TruncatedSVD(n_components = n_components)
     reduced_tfidf_matrix = svd.fit_transform(combined_tfidf_matrix)
 
@@ -107,3 +102,7 @@ def preprocess_nlp_df( nlp_df ):
     reduced_df = pd.DataFrame(normalized_tfidf_matrix, columns = column_names)
 
     return reduced_df
+
+def concatenate_lists_to_string(list_of_items):
+    """Converts a list of strings into a single string with items separated by spaces."""
+    return ' '.join(list_of_items) if isinstance(list_of_items, list) else ''

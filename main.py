@@ -23,7 +23,7 @@ x, y = clean_data('data/raw_data.json')
 
 
 # Split the data into training and testing sets
-x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=0)
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.3, random_state=0)
 
 # Define the layers being used
 L1 = FullyConnectedLayer.FullyConnectedLayer(x_train.shape[1],x_train.shape[1])
@@ -80,7 +80,7 @@ def backward_propagation( layers, y_hat, y, t,  eta = 0.001 ):
 	layers[ 0 ].updateWeights(relu_back, t, eta)
 
 # Function to run the MLP network
-def run_mlp( layers, x_train, y_train, x_test, y_test, epochs, eta = 0.001 ):
+def run_mlp( layers, x_train, y_train, x_test, y_test, epochs, eta = 0.001, threshold = 0.5 ):
 	"""
 	Runs the MLP neural network for a specified number of epochs.
 
@@ -99,8 +99,8 @@ def run_mlp( layers, x_train, y_train, x_test, y_test, epochs, eta = 0.001 ):
 	prev_jtest = None
 
 	# Arrays to store final train and test predictions
-	yhat_train = []
-	yhat_test = []
+	yhat_train = None
+	yhat_test = None
 
 	# Loop through all epochs
 	for epoch in range(epochs):
@@ -121,13 +121,14 @@ def run_mlp( layers, x_train, y_train, x_test, y_test, epochs, eta = 0.001 ):
 		# Early termination condition
 		if (epoch == 9999) or (prev_jtrain is not None and abs(prev_jtrain - train_j) < 1e-5) or (prev_jtest is not None and prev_jtest < test_j) :
 			print(f"Early termination at epoch {epoch} due to minimal loss improvement.")
-			yhat_train = train_yhat
-			yhat_test = test_yhat
+			yhat_train = (train_yhat >= threshold).astype(int)
+			yhat_test = (test_yhat >= threshold).astype(int)
 			break
 
 		# Set previous values for next epoch
 		prev_jtrain = train_j
 		prev_jtest = test_j
+
 
 	return yhat_train, yhat_test, jtrain, jtest,
 
@@ -148,11 +149,11 @@ def calculate_accuracy( y_true, y_pred, threshold = 0.5 ):
 	accuracy = np.mean(correct_predictions)
 	return accuracy
 
-
 # set parameters
 epochs = 10000  # Set the number of epochs
 learning_rate = 0.001  # Set the learning rate
-train_pred, test_pred, jtrain, jtest = run_mlp(layers, x_train, y_train,x_test, y_test, epochs, learning_rate)
+threshold = 0.4  # Set the threshold for binary classification
+train_pred, test_pred, jtrain, jtest = run_mlp(layers, x_train, y_train,x_test, y_test, epochs, learning_rate, threshold)
 
 # Print final output and loss for verification
 print(f"Final: Training Log Loss: {jtrain[-1]}, Testing Log Loss: {jtest[-1]}")
@@ -161,81 +162,18 @@ train_accuracy = calculate_accuracy(y_train, train_pred, threshold=0.5)
 test_accuracy = calculate_accuracy(y_test, test_pred, threshold=0.5)
 print(f"Training accuracy: {train_accuracy}")
 print(f"Testing accuracy: {test_accuracy}")
-# # Define variables to store J for train and test
-# jtrain = []
-# jtest = []
-#
-# # Define variable to store previous cross entropy
-# prevtestce = 0
-# prevtraince = 0
-#
-# final_sm = []
 
+# Plot
+# Generating a list of epoch numbers to match the length of jtrain/jtest lists
+loss_epochs = list(range(1, len(jtrain)  + 1))
 
-# # Forwards backwards loop
-# for epoch in range(3000):
-# 	if epoch%100==0:
-# 		print(epoch)
-#
-# 	# Forward propogation and ce loss for training set
-# 	h = layers[ 0 ].forward(x_train)
-# 	fc_forward = layers[ 1 ].forward(h)
-# 	sm_forward = layers[2].forward(fc_forward)
-# 	ce_forward = layers[3].eval(y_train, sm_forward)
-# 	jtrain.append(ce_forward)
-#
-# 	# Backpropogation and update weights
-# 	ce_back = L4.gradient(y_train, sm_forward)
-# 	sm_back = L3.backward(ce_back)
-# 	L2.updateWeights(sm_back,epoch,0.001)
-#
-#
-# 	# Forward propogation and ce loss for test set
-# 	htest = layers[ 0 ].forward(x_test)
-# 	fctest_forward = layers[ 1 ].forward(htest)
-# 	smtest_forward = layers[2].forward(fctest_forward)
-# 	cetest_forward = layers[3].eval(y_test, smtest_forward)
-# 	jtest.append(cetest_forward)
-#
-# 	# Terminating conditions
-# 	if epoch > 0 and cetest_forward > prevtestce and np.abs(prevtraince - ce_forward)<1e-5:
-#
-# 		# Calculate train accuracies
-# 		train_pred = np.argmax(sm_forward,1)
-# 		train_act = np.argmax(y_train,1)
-# 		train_act = train_act.flatten()
-# 		train_acc = np.mean(train_pred == train_act )
-#
-# 		# Calculate test accuracies
-# 		test_pred = np.argmax(smtest_forward,1)
-# 		test_act = np.argmax(y_test,1)
-# 		test_act = test_act.flatten()
-# 		test_acc = np.mean(test_pred == test_act )
-#
-# 		# Print results
-# 		print(f"Convergence at Epoch: {epoch + 1}")
-# 		print(f"Final Training Accuracy: {train_acc * 100:.4f}%")
-# 		print(f"Final Testing Accuracy: {test_acc * 100:.4f}%")
-#
-#
-# 		# Break loop
-# 		break
-#
-# 	# Set previous ce to current ce
-# 	prevtestce = cetest_forward
-# 	prevtraince = ce_forward
-#
-#
-# # Plot the figure
-# epochs = list(range(1, len(jtrain) + 1))
-# plt.figure(figsize=(10, 5))
-# plt.plot(epochs, jtrain, label='Training J')
-# plt.plot(epochs, jtest, label='Test J')
-# plt.xlabel('Epochs')
-# plt.ylabel('J (Cross Entropy Loss)')
-# plt.title('Training and Validation Cross-Entropy Loss vs Epoch')
-# plt.legend()
-# plt.grid(True)
-# plt.show()
-
-
+# Plotting
+plt.figure(figsize=(10, 6))
+plt.plot(loss_epochs, jtrain, label='Training Loss')
+plt.plot(loss_epochs, jtest, label='Testing Loss')
+plt.title('Training and Testing Loss vs Epochs')
+plt.xlabel('Epochs')
+plt.ylabel('Log Loss')
+plt.legend()
+plt.grid(True)
+plt.show()

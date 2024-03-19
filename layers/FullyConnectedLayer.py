@@ -58,7 +58,7 @@ class FullyConnectedLayer(Layer):
 	def backward(self , gradIn ):
 		return  gradIn @ self.gradient()
 
-	def updateWeights( self, gradIn,t, eta = 0.0001 ):
+	def updateWeights( self, gradIn,t, eta = 0.0001 , lambda_reg = 0.001 ):
 
 		# Ensure numpy array for consistency
 		if isinstance(gradIn, (pd.Series, pd.DataFrame)):
@@ -66,7 +66,7 @@ class FullyConnectedLayer(Layer):
 
 		# Compute gradient
 		dJdb = np.sum(gradIn, axis = 0) / gradIn.shape[ 0 ]
-		dJdW = (np.array(self.getPrevIn()).T @ gradIn) / gradIn.shape[ 0 ]
+		dJdW = (np.array(self.getPrevIn()).T @ gradIn) / gradIn.shape[ 0 ] + lambda_reg * self.weights
 
 		# First moment update
 		self.s = (self.p1 * self.s) + ((1 - self.p1) * dJdW)
