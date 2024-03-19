@@ -3,10 +3,6 @@ import numpy as np
 import pandas as pd
 
 class FullyConnectedLayer(Layer):
-
-	#Input: sizeIn , the number of features of data coming in
-	#Input: sizeOut, the number of features of data going out
-	#Output : None
 	def __init__(self, sizeIn, sizeOut ):
 		self.sizeIn = sizeIn
 		self.sizeOut = sizeOut
@@ -64,28 +60,28 @@ class FullyConnectedLayer(Layer):
 
 	def updateWeights( self, gradIn,t, eta = 0.0001 ):
 
+		# Ensure numpy array for consistency
+		if isinstance(gradIn, (pd.Series, pd.DataFrame)):
+			gradIn = gradIn.values
+
+		# Compute gradient
 		dJdb = np.sum(gradIn, axis = 0) / gradIn.shape[ 0 ]
 		dJdW = (np.array(self.getPrevIn()).T @ gradIn) / gradIn.shape[ 0 ]
 
 		# First moment update
 		self.s = (self.p1 * self.s) + ((1 - self.p1) * dJdW)
 
-
 		# Second moment update
 		self.r = (self.p2 * self.r) + ((1 - self.p2) * (dJdW * dJdW))
-
 
 		# Gradient descent numerator
 		numer = self.s / (1 - (self.p1 ** (t+1)))
 
-
 		# Gradient descent denominator
 		denom = (((self.r) / (1 - (self.p2 ** (t+1)))) ** (1 / 2)) + self.delta
 
-
 		# Final update term
 		update_term = numer / denom
-
 
 		# Update weights
 		self.setWeights(self.getWeights() - (eta * update_term))

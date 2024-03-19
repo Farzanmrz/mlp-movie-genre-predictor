@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import json
 from sklearn.preprocessing import MultiLabelBinarizer
+from sklearn.preprocessing import normalize
 from sklearn.decomposition import TruncatedSVD
 import pandas as pd
 from nltk.corpus import stopwords
@@ -94,12 +95,15 @@ def preprocess_nlp_df( nlp_df ):
     combined_tfidf_matrix = np.hstack([ tfidf_matrix.toarray() for tfidf_matrix in tfidf_matrices ])
 
     # Reduce using SVD down to n-features
-    n_components = 1790
+    n_components = 300
     svd = TruncatedSVD(n_components = n_components)
     reduced_tfidf_matrix = svd.fit_transform(combined_tfidf_matrix)
 
+    # Apply L2 normalization to the rows of the reduced matrix
+    normalized_tfidf_matrix = normalize(reduced_tfidf_matrix, norm = 'l2', axis = 1)
+
     # Convert back to a DataFrame
     column_names = [ 'tfidf_svd_' + str(i) for i in range(n_components) ]
-    reduced_df = pd.DataFrame(reduced_tfidf_matrix, columns = column_names)
+    reduced_df = pd.DataFrame(normalized_tfidf_matrix, columns = column_names)
 
     return reduced_df

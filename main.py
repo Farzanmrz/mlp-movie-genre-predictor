@@ -1,5 +1,5 @@
 # Imports
-from layers import InputLayer, FullyConnectedLayer, SoftmaxLayer, CrossEntropy, ReLULayer
+from layers import InputLayer, FullyConnectedLayer, SoftmaxLayer, CrossEntropy, ReLULayer, LogisticSigmoidLayer, LogLoss
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
@@ -29,8 +29,8 @@ x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_
 L1 = FullyConnectedLayer.FullyConnectedLayer(x_train.shape[1],x_train.shape[1])
 L2 = ReLULayer.ReLULayer()
 L3 = FullyConnectedLayer.FullyConnectedLayer(x_train.shape[1],y_train.shape[1])
-L4 = SoftmaxLayer.SoftmaxLayer()
-L5 = CrossEntropy.CrossEntropy()
+L4 = LogisticSigmoidLayer.LogisticSigmoidLayer()
+L5 = LogLoss.LogLoss()
 layers = [L1, L2, L3, L4, L5]
 
 # Forward Propogation function
@@ -45,6 +45,7 @@ def forward_propagation( layers, x, y ):
 	:return: Output of the second last layer and loss value from the last layer.
 	"""
 	h = x
+
 	# Iterate through all layers except the last one to perform forward steps.
 	for layer in layers[ :-1 ]:
 		h = layer.forward(h)
@@ -67,18 +68,15 @@ def backward_propagation( layers, y_hat, y, t,  eta = 0.001 ):
 	:param y: Target labels for computing the gradients.
 	:param eta: Learning rate for weight updates.
 	"""
-	# Compute the gradients for hidden layer 2
-	ce_back = layers[ 4 ].gradient(y, y_hat)
-	sm_back = layers[ 3 ].backward(ce_back)
-	fc2_back = layers[2 ].backward(sm_back)
 
-	# Weight update FC2 layer
-	layers[ 2 ].updateWeights(sm_back, t, eta)
+	# Hidden layer 2 gradient and weight update
+	ll_back = layers[ 4 ].gradient(y, y_hat)
+	ls_back = layers[ 3 ].backward(ll_back)
+	fc2_back = layers[2 ].backward(ls_back)
+	layers[ 2 ].updateWeights(ls_back, t, eta)
 
-	# Compute the gradients for hidden layer 1
+	# Hidden Layer 1 gradient and weight update
 	relu_back = layers[ 1 ].backward(fc2_back)
-
-	# Weight update FC1 layer
 	layers[ 0 ].updateWeights(relu_back, t, eta)
 
 # Function to run the MLP network
@@ -93,6 +91,8 @@ def run_mlp( layers, x, y, epochs, eta = 0.001 ):
 	:param eta: Learning rate for weight updates.
 	:return: The final output from the last forward_propagation and a list of losses every 10 epochs.
 	"""
+
+	# Arrays to store training
 	losses = [ ]  # To store the loss every 10 epochs
 
 	for epoch in range(epochs):
@@ -104,11 +104,11 @@ def run_mlp( layers, x, y, epochs, eta = 0.001 ):
 
 		# Print and save the loss every 10 epochs
 		if epoch % 100 == 0:
-			print(f"Epoch {epoch}, Cross Entropy Loss: {loss}")
+			print(f"Epoch {epoch}, Log Loss Loss: {loss}")
 			losses.append(loss)
 
 	# Convert final output probabilities to binary based on threshold
-	output = (output >= 0.5).astype(int)
+	output = (output >= 0.6).astype(int)
 
 	return output, losses
 
@@ -129,7 +129,8 @@ def calculate_accuracy( y_true, y_pred, threshold = 0.5 ):
 	accuracy = np.mean(correct_predictions)
 	return accuracy
 
-# Example of usage
+
+# set parameters
 epochs = 500  # Set the number of epochs
 learning_rate = 0.001  # Set the learning rate
 final_output, epoch_losses = run_mlp(layers, x_train, y_train, epochs, learning_rate)
@@ -140,7 +141,7 @@ print(f"Final Probabilities")
 print(final_output[:1])
 print(y_train[:1])
 
-accuracy = calculate_accuracy(y_train, final_output, threshold=0.1)
+accuracy = calculate_accuracy(y_train, final_output, threshold=0.5)
 print(f"Multi-label accuracy: {accuracy}")
 
 # # Define variables to store J for train and test
