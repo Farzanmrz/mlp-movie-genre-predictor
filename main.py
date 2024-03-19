@@ -80,7 +80,7 @@ def backward_propagation( layers, y_hat, y, t,  eta = 0.001 ):
 	layers[ 0 ].updateWeights(relu_back, t, eta)
 
 # Function to run the MLP network
-def run_mlp( layers, x, y, epochs, eta = 0.001 ):
+def run_mlp( layers, x_train, y_train, x_test, y_test, epochs, eta = 0.001 ):
 	"""
 	Runs the MLP neural network for a specified number of epochs.
 
@@ -92,25 +92,44 @@ def run_mlp( layers, x, y, epochs, eta = 0.001 ):
 	:return: The final output from the last forward_propagation and a list of losses every 10 epochs.
 	"""
 
-	# Arrays to store training
-	losses = [ ]  # To store the loss every 10 epochs
+	# Arrays to store training and testing loss values
+	jtrain = []
+	jtest = []
+	prev_jtrain = None
+	prev_jtest = None
 
+	# Arrays to store final train and test predictions
+	yhat_train = []
+	yhat_test = []
+
+	# Loop through all epochs
 	for epoch in range(epochs):
-		# Forward propagation
-		output, loss = forward_propagation(layers, x, y)
 
-		# Backward propagation
-		backward_propagation(layers, output, y, epoch, eta)
+		# Training Set Forward Backward Propagation
+		train_yhat, train_j = forward_propagation(layers, x_train, y_train)
+		backward_propagation(layers, train_yhat, y_train, epoch, eta)
+		jtrain.append(train_j)
 
-		# Print and save the loss every 10 epochs
+		# Testing Set Forward Propagation
+		test_yhat, test_j = forward_propagation(layers, x_test, y_test)
+		jtest.append(test_j)
+
+		# Show Loss every 100 epochs
 		if epoch % 100 == 0:
-			print(f"Epoch {epoch}, Log Loss Loss: {loss}")
-			losses.append(loss)
+			print(f"Epoch {epoch}, Training Log Loss: {train_j}, Testing Log Loss: {test_j}")
 
-	# Convert final output probabilities to binary based on threshold
-	output = (output >= 0.6).astype(int)
+		# Early termination condition
+		if (epoch == 9999) or (prev_jtrain is not None and abs(prev_jtrain - train_j) < 1e-5) or (prev_jtest is not None and prev_jtest < test_j) :
+			print(f"Early termination at epoch {epoch} due to minimal loss improvement.")
+			yhat_train = train_yhat
+			yhat_test = test_yhat
+			break
 
-	return output, losses
+		# Set previous values for next epoch
+		prev_jtrain = train_j
+		prev_jtest = test_j
+
+	return yhat_train, yhat_test, jtrain, jtest,
 
 # Function to calculate the accuracy of the network
 def calculate_accuracy( y_true, y_pred, threshold = 0.5 ):
@@ -131,19 +150,17 @@ def calculate_accuracy( y_true, y_pred, threshold = 0.5 ):
 
 
 # set parameters
-epochs = 500  # Set the number of epochs
+epochs = 10000  # Set the number of epochs
 learning_rate = 0.001  # Set the learning rate
-final_output, epoch_losses = run_mlp(layers, x_train, y_train, epochs, learning_rate)
+train_pred, test_pred, jtrain, jtest = run_mlp(layers, x_train, y_train,x_test, y_test, epochs, learning_rate)
 
 # Print final output and loss for verification
-print(f"Final Cross Entropy Loss: {epoch_losses[-1]}")
-print(f"Final Probabilities")
-print(final_output[:1])
-print(y_train[:1])
+print(f"Final: Training Log Loss: {jtrain[-1]}, Testing Log Loss: {jtest[-1]}")
 
-accuracy = calculate_accuracy(y_train, final_output, threshold=0.5)
-print(f"Multi-label accuracy: {accuracy}")
-
+train_accuracy = calculate_accuracy(y_train, train_pred, threshold=0.5)
+test_accuracy = calculate_accuracy(y_test, test_pred, threshold=0.5)
+print(f"Training accuracy: {train_accuracy}")
+print(f"Testing accuracy: {test_accuracy}")
 # # Define variables to store J for train and test
 # jtrain = []
 # jtest = []
