@@ -120,7 +120,7 @@ def run_mlp( layers, x_train, y_train, x_test, y_test, epochs, eta = 0.001, thre
 			print(f"Epoch {epoch}, Training Log Loss: {train_j}, Testing Log Loss: {test_j}")
 
 		# Early termination condition
-		if (epoch == 9999) or (prev_jtrain is not None and abs(prev_jtrain - train_j) < 1e-5) or (prev_jtest is not None and prev_jtest < test_j) :
+		if (epoch == 999) or (prev_jtrain is not None and abs(prev_jtrain - train_j) < 1e-5) or (prev_jtest is not None and prev_jtest < test_j) :
 			print(f"Early termination at epoch {epoch} due to minimal loss improvement.")
 			yhat_train = (train_yhat >= threshold).astype(int)
 			yhat_test = (test_yhat >= threshold).astype(int)
@@ -144,21 +144,21 @@ def evaluate_performance( y, yhat ):
 	"""
 
 	# Calculating metrics
-	accuracy = accuracy_score(y, yhat)
-	precision = precision_score(y, yhat, average = 'micro')
-	recall = recall_score(y, yhat, average = 'micro')
-	f1 = f1_score(y, yhat, average = 'micro')
-	jaccard = jaccard_score(y, yhat, average = 'micro')
+	accuracy = accuracy_score(y, yhat) * 100
+	precision = precision_score(y, yhat, average = 'micro') * 100
+	recall = recall_score(y, yhat, average = 'micro') * 100
+	f1 = f1_score(y, yhat, average = 'micro') * 100
+	jaccard = jaccard_score(y, yhat, average = 'micro') * 100
 
 	# Printing the metrics
-	print(f"Accuracy: {accuracy:.4f}")
-	print(f"Precision: {precision:.4f}")
-	print(f"Recall: {recall:.4f}")
-	print(f"F1 Score: {f1:.4f}")
-	print(f"Jaccard Index: {jaccard:.4f}")
+	print(f"Accuracy: {accuracy:.4f} %")
+	print(f"Precision: {precision:.4f} %")
+	print(f"Recall: {recall:.4f} %")
+	print(f"F1 Score: {f1:.4f} %")
+	print(f"Jaccard Index: {jaccard:.4f} %")
 
 # set parameters
-epochs = 10000  # Set the number of epochs
+epochs = 1000  # Set the number of epochs
 learning_rate = 0.001  # Set the learning rate
 threshold = 0.4  # Set the threshold for binary classification
 train_pred, test_pred, jtrain, jtest = run_mlp(layers, x_train, y_train,x_test, y_test, epochs, learning_rate, threshold)
