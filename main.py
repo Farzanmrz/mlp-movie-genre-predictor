@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from data_cleaning import clean_data
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, jaccard_score
 
 # Retrieve the x and y data
 x, y = clean_data('data/raw_data.json')
@@ -133,21 +134,28 @@ def run_mlp( layers, x_train, y_train, x_test, y_test, epochs, eta = 0.001, thre
 	return yhat_train, yhat_test, jtrain, jtest,
 
 # Function to calculate the accuracy of the network
-def calculate_accuracy( y_true, y_pred, threshold = 0.5 ):
-	"""
-	Calculate the multi-label accuracy using a threshold to determine label predictions.
 
-	:param y_true: Numpy array of true labels (binary encoded).
-	:param y_pred: Numpy array of predicted probabilities.
-	:param threshold: Threshold for converting probabilities to binary predictions.
-	:return: Accuracy score.
+def evaluate_performance( y, yhat ):
 	"""
-	# Convert probabilities to binary predictions
+	Evaluate and print the performance of the model on multiple metrics.
 
-	# Calculate subset accuracy
-	correct_predictions = np.all(y_true == y_pred, axis = 1)
-	accuracy = np.mean(correct_predictions)
-	return accuracy
+	:param y_true: True binary labels in binary indicator format.
+	:param y_pred: Predicted probabilities.
+	"""
+
+	# Calculating metrics
+	accuracy = accuracy_score(y, yhat)
+	precision = precision_score(y, yhat, average = 'micro')
+	recall = recall_score(y, yhat, average = 'micro')
+	f1 = f1_score(y, yhat, average = 'micro')
+	jaccard = jaccard_score(y, yhat, average = 'micro')
+
+	# Printing the metrics
+	print(f"Accuracy: {accuracy:.4f}")
+	print(f"Precision: {precision:.4f}")
+	print(f"Recall: {recall:.4f}")
+	print(f"F1 Score: {f1:.4f}")
+	print(f"Jaccard Index: {jaccard:.4f}")
 
 # set parameters
 epochs = 10000  # Set the number of epochs
@@ -156,12 +164,13 @@ threshold = 0.4  # Set the threshold for binary classification
 train_pred, test_pred, jtrain, jtest = run_mlp(layers, x_train, y_train,x_test, y_test, epochs, learning_rate, threshold)
 
 # Print final output and loss for verification
-print(f"Final: Training Log Loss: {jtrain[-1]}, Testing Log Loss: {jtest[-1]}")
+print(f"\nFinal: Training Log Loss: {jtrain[-1]}, Testing Log Loss: {jtest[-1]}")
 
-train_accuracy = calculate_accuracy(y_train, train_pred, threshold=0.5)
-test_accuracy = calculate_accuracy(y_test, test_pred, threshold=0.5)
-print(f"Training accuracy: {train_accuracy}")
-print(f"Testing accuracy: {test_accuracy}")
+print("\nTraining Set Performance:")
+evaluate_performance(y_train, train_pred)
+
+print("\nTesting Set Performance:")
+evaluate_performance(y_test, test_pred)
 
 # Plot
 # Generating a list of epoch numbers to match the length of jtrain/jtest lists
